@@ -17,7 +17,13 @@
 #include "nvs_flash.h"
 
 #include "usb/usb_host.h"
+
+#if defined(__has_include) && __has_include("usb/hid_host.h")
 #include "usb/hid_host.h"
+#define HAS_USB_HID_HOST 1
+#else
+#define HAS_USB_HID_HOST 0
+#endif
 
 #include "hid_dev.h"
 #include "hidd_le_prf_int.h"
@@ -95,6 +101,7 @@ static void send_ble_gamepad_report(const uint8_t *data, size_t length)
                         report);
 }
 
+#if HAS_USB_HID_HOST
 static void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle,
                                         const hid_host_interface_event_t event,
                                         void *arg)
@@ -163,6 +170,7 @@ static void hid_host_device_callback(hid_host_device_handle_t hid_device_handle,
 {
     hid_host_device_event(hid_device_handle, event, arg);
 }
+#endif
 
 static void usb_lib_task(void *arg)
 {
@@ -277,6 +285,7 @@ static void init_ble_hid(void)
 
 static void init_usb_hid_host(void)
 {
+#if HAS_USB_HID_HOST
     const hid_host_driver_config_t hid_host_driver_config = {
         .create_background_task = true,
         .task_priority = 5,
@@ -296,6 +305,9 @@ static void init_usb_hid_host(void)
     configASSERT(task_created == pdTRUE);
 
     ESP_ERROR_CHECK(hid_host_install(&hid_host_driver_config));
+#else
+    ESP_LOGW(APP_TAG, "USB HID host support unavailable at compile time and HID bridge is disabled");
+#endif
 }
 
 void app_main(void)
