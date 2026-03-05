@@ -36,7 +36,8 @@
 #define HID_NUM_REPORTS          9
 
 // HID Report IDs for the service
-#define HID_RPT_ID_MOUSE_IN      1   // Mouse input report ID
+#define HID_RPT_ID_GAMEPAD_IN    1   // Gamepad input report ID
+#define HID_RPT_ID_MOUSE_IN      HID_RPT_ID_GAMEPAD_IN
 #define HID_RPT_ID_KEY_IN        2   // Keyboard input report ID
 #define HID_RPT_ID_CC_IN         3   //Consumer Control input report ID
 #define HID_RPT_ID_VENDOR_OUT    4   // Vendor output report ID

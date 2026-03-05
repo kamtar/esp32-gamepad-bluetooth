@@ -677,8 +677,10 @@ bool hidd_clcb_dealloc (uint16_t conn_id)
     hidd_clcb_t      *p_clcb = NULL;
 
     for (i_clcb = 0, p_clcb= hidd_le_env.hidd_clcb; i_clcb < HID_MAX_APPS; i_clcb++, p_clcb++) {
+        if (p_clcb->in_use && p_clcb->conn_id == conn_id) {
             memset(p_clcb, 0, sizeof(hidd_clcb_t));
             return true;
+        }
     }
 
     return false;

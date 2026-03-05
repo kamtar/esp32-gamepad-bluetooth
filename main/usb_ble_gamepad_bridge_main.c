@@ -25,7 +25,7 @@
 #define APP_TAG "USB_BLE_GAMEPAD"
 #define HIDD_DEVICE_NAME "ESP32-S3 USB Gamepad Bridge"
 
-#define GAMEPAD_REPORT_ID HID_RPT_ID_MOUSE_IN
+#define GAMEPAD_REPORT_ID HID_RPT_ID_GAMEPAD_IN
 #define GAMEPAD_REPORT_LEN 7
 
 static bool s_ble_connected;
