@@ -33,10 +33,16 @@
 
 #define GAMEPAD_REPORT_ID HID_RPT_ID_GAMEPAD_IN
 #define GAMEPAD_REPORT_LEN 7
-#define HIDD_CONN_INTERVAL_MIN 0x0006
-#define HIDD_CONN_INTERVAL_MAX 0x0010
-#define HIDD_ADV_INTERVAL_MIN 0x0020
-#define HIDD_ADV_INTERVAL_MAX 0x0030
+/* BLE units from spec: connection interval unit = 1.25 ms (1250 us), advertising interval unit = 0.625 ms (625 us). */
+#define HIDD_BLE_CONN_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 1250U)
+#define HIDD_BLE_ADV_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 625U)
+
+/* 7.5 ms and 20 ms connection intervals. */
+#define HIDD_CONN_INTERVAL_MIN HIDD_BLE_CONN_ITVL_US_TO_UNITS(7500U)
+#define HIDD_CONN_INTERVAL_MAX HIDD_BLE_CONN_ITVL_US_TO_UNITS(20000U)
+/* 20 ms and 30 ms advertising intervals. */
+#define HIDD_ADV_INTERVAL_MIN HIDD_BLE_ADV_ITVL_US_TO_UNITS(20000U)
+#define HIDD_ADV_INTERVAL_MAX HIDD_BLE_ADV_ITVL_US_TO_UNITS(30000U)
 
 static bool s_ble_connected;
 static bool s_ble_secured;
