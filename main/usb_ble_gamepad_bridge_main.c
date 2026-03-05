@@ -306,7 +306,7 @@ static void init_usb_hid_host(void)
 
     ESP_ERROR_CHECK(hid_host_install(&hid_host_driver_config));
 #else
-    ESP_LOGW(APP_TAG, "USB HID host header not found; HID bridge is disabled");
+    ESP_LOGW(APP_TAG, "USB HID host support unavailable at compile time and HID bridge is disabled");
 #endif
 }
 
