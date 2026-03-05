@@ -33,6 +33,10 @@
 
 #define GAMEPAD_REPORT_ID HID_RPT_ID_GAMEPAD_IN
 #define GAMEPAD_REPORT_LEN 7
+#define XBOX_USB_REPORT_LENGTH 20
+#define XBOX_TRIGGER_ACTIVE_THRESHOLD 30
+#define GAMEPAD_HAT_MASK 0x0F
+#define GAMEPAD_HAT_NEUTRAL 0x0F
 /* BLE units from spec: connection interval unit = 1.25 ms (1250 us), advertising interval unit = 0.625 ms (625 us). */
 #define HIDD_BLE_CONN_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 1250U)
 #define HIDD_BLE_ADV_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 625U)
@@ -48,6 +52,26 @@ static bool s_ble_connected;
 static bool s_ble_secured;
 static uint16_t s_hid_conn_id;
 
+enum {
+    XBOX_DPAD_UP = 0x01U,
+    XBOX_DPAD_DOWN = 0x02U,
+    XBOX_DPAD_LEFT = 0x04U,
+    XBOX_DPAD_RIGHT = 0x08U,
+    XBOX_BUTTON_START = 0x10U,
+    XBOX_BUTTON_BACK = 0x20U,
+    XBOX_BUTTON_L3 = 0x40U,
+    XBOX_BUTTON_R3 = 0x80U,
+    XBOX_BUTTON_LB = 0x01U,
+    XBOX_BUTTON_RB = 0x02U,
+    XBOX_BUTTON_GUIDE = 0x04U,
+    XBOX_BUTTON_A = 0x10U,
+    XBOX_BUTTON_B = 0x20U,
+    XBOX_BUTTON_X = 0x40U,
+    XBOX_BUTTON_Y = 0x80U,
+    XBOX_PACKET_TYPE_0 = 0x00U,
+    XBOX_PACKET_TYPE_1 = 0x01U,
+};
+
 static int8_t axis16_to_axis8(int16_t value)
 {
     return (int8_t)(value / 256);
@@ -55,10 +79,10 @@ static int8_t axis16_to_axis8(int16_t value)
 
 static uint8_t hat_from_dpad_bits(uint8_t dpad_bits)
 {
-    const bool up = (dpad_bits & 0x01U) != 0;
-    const bool down = (dpad_bits & 0x02U) != 0;
-    const bool left = (dpad_bits & 0x04U) != 0;
-    const bool right = (dpad_bits & 0x08U) != 0;
+    const bool up = (dpad_bits & XBOX_DPAD_UP) != 0;
+    const bool down = (dpad_bits & XBOX_DPAD_DOWN) != 0;
+    const bool left = (dpad_bits & XBOX_DPAD_LEFT) != 0;
+    const bool right = (dpad_bits & XBOX_DPAD_RIGHT) != 0;
 
     if (up && right) {
         return 1;
@@ -85,26 +109,27 @@ static uint8_t hat_from_dpad_bits(uint8_t dpad_bits)
         return 6;
     }
 
-    return 0x0F;
+    return GAMEPAD_HAT_NEUTRAL;
 }
 
 static bool map_xbox_usb_report(const uint8_t *data, size_t length, uint8_t report[GAMEPAD_REPORT_LEN])
 {
-    if (length < 20 || data[1] != 0x14) {
+    if (length < XBOX_USB_REPORT_LENGTH) {
         return false;
     }
 
-    size_t offset = 0;
-    if (data[0] == 0x00 || data[0] == 0x01) {
-        offset = 2;
-    }
-
-    if (length < (offset + 12)) {
+    if (data[0] != XBOX_PACKET_TYPE_0 && data[0] != XBOX_PACKET_TYPE_1) {
         return false;
     }
 
-    const uint8_t dpad = data[offset + 0];
-    const uint8_t buttons = data[offset + 1];
+    if (data[1] != XBOX_USB_REPORT_LENGTH) {
+        return false;
+    }
+
+    const size_t offset = 2;
+
+    const uint8_t buttons0 = data[offset + 0];
+    const uint8_t buttons1 = data[offset + 1];
     const uint8_t lt = data[offset + 2];
     const uint8_t rt = data[offset + 3];
     const int16_t lx = (int16_t)((uint16_t)data[offset + 4] | ((uint16_t)data[offset + 5] << 8));
@@ -116,22 +141,22 @@ static bool map_xbox_usb_report(const uint8_t *data, size_t length, uint8_t repo
     report[1] = (uint8_t)axis16_to_axis8(-ly);
     report[2] = (uint8_t)axis16_to_axis8(rx);
     report[3] = (uint8_t)axis16_to_axis8(-ry);
-    report[4] = hat_from_dpad_bits(dpad);
+    report[4] = hat_from_dpad_bits(buttons0);
 
     uint16_t mapped_buttons = 0;
-    mapped_buttons |= (buttons & 0x10U) ? (1U << 0) : 0; /* A */
-    mapped_buttons |= (buttons & 0x20U) ? (1U << 1) : 0; /* B */
-    mapped_buttons |= (buttons & 0x40U) ? (1U << 2) : 0; /* X */
-    mapped_buttons |= (buttons & 0x80U) ? (1U << 3) : 0; /* Y */
-    mapped_buttons |= (buttons & 0x01U) ? (1U << 4) : 0; /* LB */
-    mapped_buttons |= (buttons & 0x02U) ? (1U << 5) : 0; /* RB */
-    mapped_buttons |= (dpad & 0x20U) ? (1U << 6) : 0;    /* Back */
-    mapped_buttons |= (dpad & 0x10U) ? (1U << 7) : 0;    /* Start */
-    mapped_buttons |= (dpad & 0x40U) ? (1U << 8) : 0;    /* L3 */
-    mapped_buttons |= (dpad & 0x80U) ? (1U << 9) : 0;    /* R3 */
-    mapped_buttons |= (buttons & 0x04U) ? (1U << 10) : 0;/* Guide */
-    mapped_buttons |= (lt > 30U) ? (1U << 11) : 0;       /* LT */
-    mapped_buttons |= (rt > 30U) ? (1U << 12) : 0;       /* RT */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_A) ? (1U << 0) : 0;      /* A */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_B) ? (1U << 1) : 0;      /* B */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_X) ? (1U << 2) : 0;      /* X */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_Y) ? (1U << 3) : 0;      /* Y */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_LB) ? (1U << 4) : 0;     /* LB */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_RB) ? (1U << 5) : 0;     /* RB */
+    mapped_buttons |= (buttons0 & XBOX_BUTTON_BACK) ? (1U << 6) : 0;   /* Back */
+    mapped_buttons |= (buttons0 & XBOX_BUTTON_START) ? (1U << 7) : 0;  /* Start */
+    mapped_buttons |= (buttons0 & XBOX_BUTTON_L3) ? (1U << 8) : 0;     /* L3 */
+    mapped_buttons |= (buttons0 & XBOX_BUTTON_R3) ? (1U << 9) : 0;     /* R3 */
+    mapped_buttons |= (buttons1 & XBOX_BUTTON_GUIDE) ? (1U << 10) : 0; /* Guide */
+    mapped_buttons |= (lt > XBOX_TRIGGER_ACTIVE_THRESHOLD) ? (1U << 11) : 0; /* LT */
+    mapped_buttons |= (rt > XBOX_TRIGGER_ACTIVE_THRESHOLD) ? (1U << 12) : 0; /* RT */
 
     report[5] = (uint8_t)(mapped_buttons & 0xFF);
     report[6] = (uint8_t)((mapped_buttons >> 8) & 0xFF);
@@ -182,7 +207,7 @@ static void send_ble_gamepad_report(const uint8_t *data, size_t length)
         report[1] = (length > 3) ? data[3] : 0;
         report[2] = (length > 4) ? data[4] : 0;
         report[3] = (length > 5) ? data[5] : 0;
-        report[4] = (length > 6) ? (data[6] & 0x0F) : 0x0F;
+        report[4] = (length > 6) ? (data[6] & GAMEPAD_HAT_MASK) : GAMEPAD_HAT_NEUTRAL;
 
         uint16_t buttons = 0;
         if (length > 0) {
