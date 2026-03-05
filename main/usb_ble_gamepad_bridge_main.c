@@ -33,6 +33,16 @@
 
 #define GAMEPAD_REPORT_ID HID_RPT_ID_GAMEPAD_IN
 #define GAMEPAD_REPORT_LEN 7
+/* BLE units from spec: connection interval unit = 1.25 ms (1250 us), advertising interval unit = 0.625 ms (625 us). */
+#define HIDD_BLE_CONN_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 1250U)
+#define HIDD_BLE_ADV_ITVL_US_TO_UNITS(interval_us) ((interval_us) / 625U)
+
+/* 7.5 ms and 20 ms connection intervals. */
+#define HIDD_CONN_INTERVAL_MIN HIDD_BLE_CONN_ITVL_US_TO_UNITS(7500U)
+#define HIDD_CONN_INTERVAL_MAX HIDD_BLE_CONN_ITVL_US_TO_UNITS(20000U)
+/* 20 ms and 30 ms advertising intervals. */
+#define HIDD_ADV_INTERVAL_MIN HIDD_BLE_ADV_ITVL_US_TO_UNITS(20000U)
+#define HIDD_ADV_INTERVAL_MAX HIDD_BLE_ADV_ITVL_US_TO_UNITS(30000U)
 
 static bool s_ble_connected;
 static bool s_ble_secured;
@@ -47,8 +57,8 @@ static esp_ble_adv_data_t hidd_adv_data = {
     .set_scan_rsp = false,
     .include_name = true,
     .include_txpower = true,
-    .min_interval = ESP_BLE_GAP_CONN_ITVL_MS(7.5),
-    .max_interval = ESP_BLE_GAP_CONN_ITVL_MS(20),
+    .min_interval = HIDD_CONN_INTERVAL_MIN,
+    .max_interval = HIDD_CONN_INTERVAL_MAX,
     .appearance = 0x03C0,
     .manufacturer_len = 0,
     .p_manufacturer_data = NULL,
@@ -60,8 +70,8 @@ static esp_ble_adv_data_t hidd_adv_data = {
 };
 
 static esp_ble_adv_params_t hidd_adv_params = {
-    .adv_int_min = ESP_BLE_GAP_ADV_ITVL_MS(20),
-    .adv_int_max = ESP_BLE_GAP_ADV_ITVL_MS(30),
+    .adv_int_min = HIDD_ADV_INTERVAL_MIN,
+    .adv_int_max = HIDD_ADV_INTERVAL_MAX,
     .adv_type = ADV_TYPE_IND,
     .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
     .channel_map = ADV_CHNL_ALL,
