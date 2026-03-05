@@ -33,6 +33,10 @@
 
 #define GAMEPAD_REPORT_ID HID_RPT_ID_GAMEPAD_IN
 #define GAMEPAD_REPORT_LEN 7
+#define HIDD_CONN_INTERVAL_MIN 0x0006
+#define HIDD_CONN_INTERVAL_MAX 0x0010
+#define HIDD_ADV_INTERVAL_MIN 0x0020
+#define HIDD_ADV_INTERVAL_MAX 0x0030
 
 static bool s_ble_connected;
 static bool s_ble_secured;
@@ -47,8 +51,8 @@ static esp_ble_adv_data_t hidd_adv_data = {
     .set_scan_rsp = false,
     .include_name = true,
     .include_txpower = true,
-    .min_interval = ESP_BLE_GAP_CONN_ITVL_MS(7.5),
-    .max_interval = ESP_BLE_GAP_CONN_ITVL_MS(20),
+    .min_interval = HIDD_CONN_INTERVAL_MIN,
+    .max_interval = HIDD_CONN_INTERVAL_MAX,
     .appearance = 0x03C0,
     .manufacturer_len = 0,
     .p_manufacturer_data = NULL,
@@ -60,8 +64,8 @@ static esp_ble_adv_data_t hidd_adv_data = {
 };
 
 static esp_ble_adv_params_t hidd_adv_params = {
-    .adv_int_min = ESP_BLE_GAP_ADV_ITVL_MS(20),
-    .adv_int_max = ESP_BLE_GAP_ADV_ITVL_MS(30),
+    .adv_int_min = HIDD_ADV_INTERVAL_MIN,
+    .adv_int_max = HIDD_ADV_INTERVAL_MAX,
     .adv_type = ADV_TYPE_IND,
     .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
     .channel_map = ADV_CHNL_ALL,
