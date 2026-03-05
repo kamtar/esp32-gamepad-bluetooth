@@ -14,6 +14,7 @@ ESP32-S3-Zero USB-host to BLE gamepad bridge built with ESP-IDF.
 - Board: ESP32-S3-Zero
 - USB OTG wiring must support host mode (5V VBUS power + D+/D-)
 - Only USB HID gamepads are expected
+- Xbox USB gamepads that send 20-byte XInput-style HID reports are mapped explicitly
 
 ## Build
 
